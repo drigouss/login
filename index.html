@@ -1,45 +1,144 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login com Google</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <meta charset="UTF-8">
+  <title>Área de Aulas com Login Google</title>
+  <meta name="google-signin-client_id" content="207280399517-3ju6kmsu1qcu563lh02j1cd0c6fvolkr.apps.googleusercontent.com">
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 50px; }
-    #profile { margin-top: 20px; }
-    img { border-radius: 50%; }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    #sidebar {
+      width: 280px;
+      background: #1f1f2e;
+      color: white;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #aulaList {
+      list-style: none;
+      padding: 0;
+    }
+    #aulaList li {
+      background: #2a2a3d;
+      margin-bottom: 8px;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #aulaList li:hover {
+      background: #3d3d5c;
+    }
+    #main {
+      flex: 1;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    #videoPlayer {
+      width: 100%;
+      max-width: 800px;
+      height: 450px;
+      border: none;
+      border-radius: 8px;
+    }
+    #loginSection {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <h1>Login com Google</h1>
-  <div id="g_id_onload"
-       data-client_id="207280399517-3ju6kmsu1qcu563lh02j1cd0c6fvolkr.apps.googleusercontent.com"
-       data-context="signin"
-       data-callback="handleCredentialResponse"
-       data-auto_prompt="false">
-  </div>
-  <div class="g_id_signin"
-       data-type="standard"
-       data-shape="pill"
-       data-theme="outline"
-       data-text="sign_in_with"
-       data-size="large"
-       data-logo_alignment="left">
+
+  <div id="loginSection">
+    <div id="g_id_onload"
+        data-client_id="SEU_CLIENT_ID_AQUI"
+        data-callback="handleCredentialResponse"
+        data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+        data-type="standard"
+        data-size="large"
+        data-theme="outline"
+        data-text="sign_in_with"
+        data-shape="pill"
+        data-logo_alignment="left">
+    </div>
+    <div id="userInfo" style="margin-top: 10px; color: #333;"></div>
   </div>
 
-  <div id="profile"></div>
+  <div id="sidebar" style="display: none;">
+    <h2>Aulas</h2>
+    <ul id="aulaList"></ul>
+  </div>
+
+  <div id="main">
+    <iframe id="videoPlayer" allowfullscreen></iframe>
+  </div>
 
   <script>
+    const aulaList = document.getElementById('aulaList');
+    const sidebar = document.getElementById('sidebar');
+    const player = document.getElementById('videoPlayer');
+    const userInfo = document.getElementById('userInfo');
+
+    const apiUrl = 'https://script.google.com/macros/s/AKfycbzMkGFIdMUrm6p8eCGveHnOUv1fdtX5wmzAIYpESuH5mllnSkCY5P0JjdvObcUQ0heaAA/exec';
+
     function handleCredentialResponse(response) {
-      const data = jwt_decode(response.credential);
-      document.getElementById("profile").innerHTML = `
-        <h2>Olá, ${data.name}</h2>
-        <p>Email: ${data.email}</p>
-        <img src="${data.picture}" width="100"/>
-      `;
+      const jwt = parseJwt(response.credential);
+      const email = jwt.email;
+      const name = jwt.name;
+
+      // Exibe nome do usuário
+      userInfo.textContent = `👤 Olá, ${name}`;
+
+      // Exibe conteúdo
+      sidebar.style.display = 'block';
+
+      // Carrega as aulas
+      fetch(apiUrl)
+        .then(res => res.json())
+        .then(dados => {
+          aulaList.innerHTML = '';
+          dados.forEach((item, i) => {
+            if (item.aula && item.links) {
+              const li = document.createElement('li');
+              li.textContent = item.aula;
+              li.addEventListener('click', () => {
+                const id = extrairVideoId(item.links);
+                player.src = `https://www.youtube.com/embed/${id}`;
+                document.querySelectorAll('#aulaList li').forEach(el => el.style.background = '#2a2a3d');
+                li.style.background = '#4f46e5';
+              });
+              aulaList.appendChild(li);
+
+              // Carrega o primeiro automaticamente
+              if (i === 0) li.click();
+            }
+          });
+        });
+    }
+
+    function extrairVideoId(url) {
+      const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^\s&?]+)/);
+      return match ? match[1] : '';
+    }
+
+    function parseJwt(token) {
+      const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+        return `%${('00' + c.charCodeAt(0).toString(16)).slice(-2)}`;
+      }).join(''));
+      return JSON.parse(jsonPayload);
     }
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+
 </body>
 </html>
