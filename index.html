@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login com Google</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 50px; }
+    #profile { margin-top: 20px; }
+    img { border-radius: 50%; }
+  </style>
+</head>
+<body>
+  <h1>Login com Google</h1>
+  <div id="g_id_onload"
+       data-client_id="207280399517-3ju6kmsu1qcu563lh02j1cd0c6fvolkr.apps.googleusercontent.com"
+       data-context="signin"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
+  </div>
+  <div class="g_id_signin"
+       data-type="standard"
+       data-shape="pill"
+       data-theme="outline"
+       data-text="sign_in_with"
+       data-size="large"
+       data-logo_alignment="left">
+  </div>
+
+  <div id="profile"></div>
+
+  <script>
+    function handleCredentialResponse(response) {
+      const data = jwt_decode(response.credential);
+      document.getElementById("profile").innerHTML = `
+        <h2>Olá, ${data.name}</h2>
+        <p>Email: ${data.email}</p>
+        <img src="${data.picture}" width="100"/>
+      `;
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+</body>
+</html>
